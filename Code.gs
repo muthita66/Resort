@@ -1,11 +1,14 @@
 /**
- * ระบบจองบ้านพัก (Google Apps Script Web App)
+ * ระบบการเข้าพักรีสอร์ท (Google Apps Script Web App)
  *
  * ชีทที่ใช้:
  *  - "รายชื่อพนักงาน"           : รายชื่อพนักงาน คอลัมน์ D (เริ่มแถว 3)
  *  - "ฐานข้อมูลรายการห้องพัก"    : ประเภทห้อง คอลัมน์ A, เลขห้อง คอลัมน์ B (เริ่มแถว 4)
  *  - "DB_CheckIn"              : บันทึกการจอง (เริ่มแถว 3)
  */
+
+// Google Sheets ที่ใช้เป็นฐานข้อมูล
+var SPREADSHEET_ID = '1o4GHJOk26kforQLH2yVe3qyksV3A5tmu3_4kYqSDTrU';
 
 var SHEET_STAFF = 'รายชื่อพนักงาน';
 var SHEET_ROOMS = 'ฐานข้อมูลรายการห้องพัก';
@@ -38,13 +41,13 @@ var CUSTOMER_TYPES = [
 var STATUS_CLOSED = 'งดให้บริการ';
 
 function doGet() {
-  return HtmlService.createHtmlOutputFromFile('index')
-    .setTitle('ระบบจองบ้านพัก')
+  return HtmlService.createHtmlOutputFromFile('Index')
+    .setTitle('ระบบการเข้าพักรีสอร์ท')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
 function getSheet_(name) {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
+  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(name);
   if (!sheet) throw new Error('ไม่พบชีท "' + name + '"');
   return sheet;
 }
