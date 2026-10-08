@@ -144,7 +144,74 @@
     .toast.error { background: var(--danger); }
     .toast.show { display: block; }
 
+    main.wide { max-width: 1100px; }
+    .tabs { margin-bottom: 14px; }
+    .field { display: block; font-size: 14px; color: var(--muted); }
+    .field input { margin-top: 4px; color: var(--text); }
+    input[type=month], input[type=search] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      font: inherit;
+      background: #fff;
+    }
+    .filters { display: grid; grid-template-columns: 1fr 2fr; gap: 12px; }
+
+    .table-wrap { overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; font-size: 15px; }
+    th, td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+    th { color: var(--muted); font-weight: 600; font-size: 14px; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    tr.total td { font-weight: 700; border-top: 2px solid var(--line); border-bottom: 0; }
+    td.empty { color: var(--muted); text-align: center; padding: 20px; }
+    .tag {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 13px;
+      color: #fff;
+    }
+    .del {
+      border: 1px solid var(--danger);
+      color: var(--danger);
+      background: #fff;
+      border-radius: 8px;
+      padding: 4px 10px;
+      font: inherit;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .del:hover { background: var(--danger-soft); }
+    .del:disabled { opacity: .5; cursor: default; }
+
+    .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 12px; font-size: 14px; }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .legend i { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
+    table.schedule { width: auto; font-size: 13px; }
+    table.schedule th, table.schedule td { padding: 0; border: 1px solid var(--line); text-align: center; }
+    table.schedule th { min-width: 28px; height: 30px; }
+    table.schedule th.we { background: #f6f8f7; }
+    table.schedule td.cell { width: 28px; height: 30px; }
+    table.schedule .room {
+      position: sticky;
+      left: 0;
+      background: #fff;
+      padding: 0 10px;
+      text-align: left;
+      font-weight: 600;
+      z-index: 1;
+    }
+    table.schedule tr.group td {
+      background: var(--primary-soft);
+      text-align: left;
+      padding: 4px 10px;
+      font-weight: 700;
+    }
+    table.schedule tr.group td:first-child { position: sticky; left: 0; }
+
     @media (max-width: 480px) {
+      .filters { grid-template-columns: 1fr; }
       .dates { grid-template-columns: 1fr; }
     }
   </style>
@@ -216,8 +283,72 @@
       <div class="clock" id="clock"></div>
     </section>
 
-    <section id="page-dashboard" class="page"><div class="card">หน้าแดชบอร์ด (กำลังพัฒนา)</div></section>
-    <section id="page-stay" class="page"><div class="card">ตรวจสอบการเข้าพัก (กำลังพัฒนา)</div></section>
+    <!-- หน้าที่ 2 แดชบอร์ด -->
+    <section id="page-dashboard" class="page">
+      <div class="choices tabs" id="dashTabs">
+        <button type="button" class="choice selected" data-tab="daily">สรุปรายวัน</button>
+        <button type="button" class="choice" data-tab="monthly">สรุปรายเดือน</button>
+      </div>
+
+      <div id="dash-daily" class="tab-panel">
+        <div class="card">
+          <label class="field">วันที่ <input type="date" id="dailyDate"></label>
+        </div>
+        <div class="card">
+          <h2>ยอดรวมการเข้าพักแยกตามประเภทบ้าน <small id="dailyLabel"></small></h2>
+          <div class="table-wrap"><table id="dailyByType"></table></div>
+          <div class="hint">เข้าพัก = ห้องที่มีผู้เข้าพักในคืนของวันที่เลือก (Check in ≤ วันที่ &lt; Check out)</div>
+        </div>
+        <div class="card">
+          <h2>ผู้เข้าพักแยกตามประเภทลูกค้า</h2>
+          <div class="table-wrap"><table id="dailyByCustomer"></table></div>
+        </div>
+      </div>
+
+      <div id="dash-monthly" class="tab-panel" hidden>
+        <div class="card">
+          <label class="field">เดือน <input type="month" id="monthlyMonth"></label>
+        </div>
+        <div class="card">
+          <h2>สรุปรายเดือนแยกตามประเภทบ้าน <small id="monthlyLabel"></small></h2>
+          <div class="table-wrap"><table id="monthlyByType"></table></div>
+          <div class="hint">อัตราการเข้าพัก = คืนที่เข้าพัก ÷ (จำนวนห้อง × จำนวนวันในเดือน) · การจองนับตามวัน Check in</div>
+        </div>
+        <div class="card">
+          <h2>สรุปรายเดือนแยกตามประเภทลูกค้า</h2>
+          <div class="table-wrap"><table id="monthlyByCustomer"></table></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- หน้าที่ 3 ตรวจสอบการเข้าพัก -->
+    <section id="page-stay" class="page">
+      <div class="choices tabs" id="stayTabs">
+        <button type="button" class="choice selected" data-tab="history">ประวัติการจองบ้านพัก</button>
+        <button type="button" class="choice" data-tab="schedule">ตารางการเข้าพัก</button>
+      </div>
+
+      <div id="stay-history" class="tab-panel">
+        <div class="card filters">
+          <label class="field">เดือนที่ Check in <input type="month" id="historyMonth"></label>
+          <label class="field">ค้นหา <input type="search" id="historySearch" placeholder="ชื่อพนักงาน / เลขห้อง / ประเภทลูกค้า"></label>
+        </div>
+        <div class="card">
+          <h2>ประวัติการจอง <small id="historyCount"></small></h2>
+          <div class="table-wrap"><table id="historyTable"></table></div>
+        </div>
+      </div>
+
+      <div id="stay-schedule" class="tab-panel" hidden>
+        <div class="card">
+          <label class="field">เดือน <input type="month" id="scheduleMonth"></label>
+          <div class="legend" id="legend"></div>
+        </div>
+        <div class="card">
+          <div class="table-wrap"><table class="schedule" id="scheduleTable"></table></div>
+        </div>
+      </div>
+    </section>
     <section id="page-manage" class="page"><div class="card">เพิ่ม / ลบข้อมูล (กำลังพัฒนา)</div></section>
   </main>
 
@@ -251,19 +382,44 @@
           ]
         };
       },
-      saveBooking: function (f) { console.log('saveBooking', JSON.stringify(f)); return { row: 3 }; }
+      saveBooking: function (f) { console.log('saveBooking', JSON.stringify(f)); return { row: 3 }; },
+      getBookings: function () { return MOCK_BOOKINGS; },
+      deleteBooking: function (row) {
+        MOCK_BOOKINGS = MOCK_BOOKINGS.filter(function (b) { return b.row !== row; });
+        return true;
+      }
     };
+    var MOCK_BOOKINGS = (function () {
+      var types = ['เจ้าของบ้านเข้าพัก', 'ลูกค้าทั่วไปเข้าพัก', 'ลูกค้าเข้าพัก ใช้บัตรของขวัญ', 'อินฟลูเอนเซอร์เข้าพัก'];
+      var rooms = [['D', 'D01'], ['D', 'D02'], ['T', 'T01'], ['N', 'N01'], ['P', 'P02'], ['G', 'G01'], ['D', 'D03'], ['L', 'L01']];
+      var t = todayISO();
+      return rooms.map(function (r, i) {
+        var ci = addDays(t, i * 2 - 5), n = (i % 3) + 1;
+        var closed = i === 6;
+        return {
+          row: i + 3, timestamp: addDays(ci, -3) + ' 10:0' + i + ':00', staff: i % 2 ? 'สมหญิง รักงาน' : 'สมชาย ใจดี',
+          customerType: closed ? '' : types[i % 4], roomType: r[0], roomNo: r[1],
+          checkIn: ci, checkOut: addDays(ci, n), nights: n, status: closed ? 'งดให้บริการ' : types[i % 4]
+        };
+      });
+    })();
 
-    function call(fn, arg) {
+    function call(fn) {
+      var args = Array.prototype.slice.call(arguments, 1);
       return new Promise(function (resolve, reject) {
         if (api) {
           setTimeout(function () {
-            try { resolve(api[fn](arg)); } catch (e) { reject(e); }
+            try { resolve(api[fn].apply(api, args)); } catch (e) { reject(e); }
           }, 200);
           return;
         }
-        google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn](arg);
+        var runner = google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);
+        runner[fn].apply(runner, args);
       });
+    }
+
+    function loadError(e) {
+      toast('โหลดข้อมูลไม่สำเร็จ: ' + (e.message || e), true);
     }
 
     function $(id) { return document.getElementById(id); }
@@ -273,8 +429,11 @@
       $('page-' + page).classList.add('active');
       $('title').textContent = PAGE_TITLES[page];
       $('backBtn').hidden = page === 'home';
-      if (page === 'booking' && !formData) loadForm();
+      document.querySelector('main').classList.toggle('wide', page === 'dashboard' || page === 'stay');
       window.scrollTo(0, 0);
+      if (page === 'booking') getForm().catch(loadError);
+      if (page === 'dashboard') loadData().then(renderDashboard).catch(loadError);
+      if (page === 'stay') loadData().then(renderStay).catch(loadError);
     }
 
     function toast(msg, isError) {
@@ -305,9 +464,24 @@
       if (btn) btn.classList.add('selected');
     }
 
-    function loadForm() {
-      call('getBookingFormData').then(function (data) {
-        formData = data;
+    var formPromise = null;
+
+    // โหลดข้อมูลพนักงาน/ห้องครั้งเดียว ใช้ร่วมกันทุกหน้า
+    function getForm() {
+      if (!formPromise) {
+        formPromise = call('getBookingFormData').then(function (data) {
+          formData = data;
+          setupBookingForm(data);
+          return data;
+        }).catch(function (e) {
+          formPromise = null;
+          throw e;
+        });
+      }
+      return formPromise;
+    }
+
+    function setupBookingForm(data) {
         var staffSel = $('staff');
         staffSel.innerHTML = '<option value="">-- เลือกผู้รับผิดชอบ --</option>';
         data.staff.forEach(function (n) {
@@ -335,9 +509,6 @@
           render();
         });
         render();
-      }).catch(function (e) {
-        toast('โหลดข้อมูลไม่สำเร็จ: ' + (e.message || e), true);
-      });
     }
 
     $('statusChoices').querySelectorAll('.choice').forEach(function (b) {
@@ -424,6 +595,7 @@
         checkOut: $('checkOut').value
       }).then(function () {
         toast('บันทึกข้อมูลเรียบร้อย');
+        bookings = null;
         resetForm();
       }).catch(function (e) {
         toast('บันทึกไม่สำเร็จ: ' + (e.message || e), true);
@@ -443,6 +615,296 @@
       $('checkIn').value = '';
       $('checkOut').value = '';
     }
+
+    /* ---------- ข้อมูลการจอง (ใช้ร่วมกันหน้าแดชบอร์ดและตรวจสอบการเข้าพัก) ---------- */
+
+    var CLOSED = 'งดให้บริการ';
+    var STATUS_COLORS = {
+      'เจ้าของบ้านเข้าพัก': '#2563eb',
+      'ลูกค้าทั่วไปเข้าพัก': '#2f7d5b',
+      'ลูกค้าเข้าพัก ใช้บัตรของขวัญ': '#c2410c',
+      'อินฟลูเอนเซอร์เข้าพัก': '#9333ea',
+      'งดให้บริการ': '#6b7280'
+    };
+    var bookings = null;
+
+    // ดึงรายการจองใหม่ทุกครั้งที่เข้าหน้า เพื่อให้เห็นข้อมูลล่าสุดจากพนักงานคนอื่น
+    function loadData() {
+      return Promise.all([getForm(), call('getBookings')]).then(function (res) {
+        bookings = res[1];
+      });
+    }
+
+    function pad(n) { return (n < 10 ? '0' : '') + n; }
+    function todayISO() {
+      var d = new Date();
+      return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+    }
+    function addDays(iso, n) {
+      var d = new Date(iso + 'T00:00:00Z');
+      d.setUTCDate(d.getUTCDate() + n);
+      return d.toISOString().slice(0, 10);
+    }
+    function diffDays(a, b) {
+      return Math.round((new Date(b + 'T00:00:00Z') - new Date(a + 'T00:00:00Z')) / 86400000);
+    }
+    function daysInMonth(ym) {
+      var p = ym.split('-');
+      return new Date(Date.UTC(+p[0], +p[1], 0)).getUTCDate();
+    }
+    function monthLabel(ym) {
+      var p = ym.split('-');
+      return new Date(+p[0], +p[1] - 1, 1).toLocaleDateString('th-TH', { month: 'long', year: 'numeric' });
+    }
+    function dayLabel(iso) {
+      var p = iso.split('-');
+      return new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    }
+    function isClosed(b) { return b.status === CLOSED; }
+    function staysOn(b, iso) { return b.checkIn <= iso && iso < b.checkOut; }
+    function pct(n) { return isFinite(n) ? (n * 100).toFixed(1) + '%' : '-'; }
+
+    function roomTypes() {
+      var types = formData.roomGroups.map(function (g) { return g.type; });
+      bookings.forEach(function (b) {
+        if (b.roomType && types.indexOf(b.roomType) === -1) types.push(b.roomType);
+      });
+      return types;
+    }
+    function roomCount(type) {
+      var g = formData.roomGroups.filter(function (g) { return g.type === type; })[0];
+      return g ? g.rooms.length : 0;
+    }
+
+    function tag(status) {
+      return '<span class="tag" style="background:' + (STATUS_COLORS[status] || '#475569') + '">' + esc(status || '-') + '</span>';
+    }
+
+    // headers: [{t, num}], rows: [[cell...]] (cell เป็น HTML ที่ escape แล้ว หรือตัวเลข)
+    function fillTable(el, headers, rows, total) {
+      var html = '<thead><tr>' + headers.map(function (h) {
+        return '<th' + (h.num ? ' class="num"' : '') + '>' + h.t + '</th>';
+      }).join('') + '</tr></thead><tbody>';
+      if (!rows.length) html += '<tr><td class="empty" colspan="' + headers.length + '">ไม่มีข้อมูล</td></tr>';
+      rows.concat(total ? [total] : []).forEach(function (r, i) {
+        html += '<tr' + (total && i === rows.length ? ' class="total"' : '') + '>' + r.map(function (c, j) {
+          return '<td' + (headers[j].num ? ' class="num"' : '') + '>' + c + '</td>';
+        }).join('') + '</tr>';
+      });
+      el.innerHTML = html + '</tbody>';
+    }
+
+    function sumCol(rows, j) {
+      return rows.reduce(function (s, r) { return s + (typeof r[j] === 'number' ? r[j] : 0); }, 0);
+    }
+
+    function setupTabs(containerId, prefix, onChange) {
+      var buttons = $(containerId).querySelectorAll('.choice');
+      buttons.forEach(function (b) {
+        b.onclick = function () {
+          select($(containerId), b);
+          buttons.forEach(function (o) { $(prefix + o.dataset.tab).hidden = o !== b; });
+          onChange();
+        };
+      });
+    }
+
+    /* ---------- หน้าที่ 2 แดชบอร์ด ---------- */
+
+    function renderDashboard() {
+      if (!bookings) return;
+      renderDaily();
+      renderMonthly();
+    }
+
+    function renderDaily() {
+      var d = $('dailyDate').value || todayISO();
+      $('dailyLabel').textContent = '(' + dayLabel(d) + ')';
+
+      var rows = roomTypes().map(function (type) {
+        var list = bookings.filter(function (b) { return b.roomType === type; });
+        var open = list.filter(function (b) { return !isClosed(b); });
+        var total = roomCount(type);
+        var stay = open.filter(function (b) { return staysOn(b, d); }).length;
+        var closed = list.filter(function (b) { return isClosed(b) && staysOn(b, d); }).length;
+        var free = Math.max(total - stay - closed, 0);
+        return [
+          'กลุ่ม ' + esc(type), total, stay,
+          open.filter(function (b) { return b.checkIn === d; }).length,
+          open.filter(function (b) { return b.checkOut === d; }).length,
+          closed, free, pct(stay / total)
+        ];
+      });
+      var totalRooms = sumCol(rows, 1), totalStay = sumCol(rows, 2);
+      fillTable($('dailyByType'), [
+        { t: 'ประเภทบ้าน' }, { t: 'ห้องทั้งหมด', num: true }, { t: 'เข้าพัก', num: true },
+        { t: 'Check in วันนี้', num: true }, { t: 'Check out วันนี้', num: true },
+        { t: 'งดให้บริการ', num: true }, { t: 'ห้องว่าง', num: true }, { t: 'อัตราเข้าพัก', num: true }
+      ], rows, ['รวม', totalRooms, totalStay, sumCol(rows, 3), sumCol(rows, 4), sumCol(rows, 5), sumCol(rows, 6), pct(totalStay / totalRooms)]);
+
+      var custRows = formData.customerTypes.map(function (t) {
+        var list = bookings.filter(function (b) { return b.status === t; });
+        return [
+          tag(t),
+          list.filter(function (b) { return staysOn(b, d); }).length,
+          list.filter(function (b) { return b.checkIn === d; }).length,
+          list.filter(function (b) { return b.checkOut === d; }).length
+        ];
+      });
+      fillTable($('dailyByCustomer'), [
+        { t: 'ประเภทลูกค้า' }, { t: 'เข้าพัก (ห้อง)', num: true },
+        { t: 'Check in วันนี้', num: true }, { t: 'Check out วันนี้', num: true }
+      ], custRows, ['รวม', sumCol(custRows, 1), sumCol(custRows, 2), sumCol(custRows, 3)]);
+    }
+
+    function renderMonthly() {
+      var ym = $('monthlyMonth').value || todayISO().slice(0, 7);
+      var dim = daysInMonth(ym), start = ym + '-01', end = addDays(start, dim);
+      $('monthlyLabel').textContent = '(' + monthLabel(ym) + ')';
+
+      // จำนวนคืนของการจองที่อยู่ในเดือนที่เลือก
+      function nightsIn(b) {
+        var a = b.checkIn > start ? b.checkIn : start;
+        var z = b.checkOut < end ? b.checkOut : end;
+        return Math.max(diffDays(a, z), 0);
+      }
+      function inMonth(b) { return b.checkIn.slice(0, 7) === ym; }
+
+      var rows = roomTypes().map(function (type) {
+        var list = bookings.filter(function (b) { return b.roomType === type; });
+        var open = list.filter(function (b) { return !isClosed(b); });
+        var total = roomCount(type);
+        var nights = open.reduce(function (s, b) { return s + nightsIn(b); }, 0);
+        return [
+          'กลุ่ม ' + esc(type), total,
+          open.filter(inMonth).length, nights,
+          list.filter(isClosed).reduce(function (s, b) { return s + nightsIn(b); }, 0),
+          pct(nights / (total * dim))
+        ];
+      });
+      var totalRooms = sumCol(rows, 1), totalNights = sumCol(rows, 3);
+      fillTable($('monthlyByType'), [
+        { t: 'ประเภทบ้าน' }, { t: 'ห้องทั้งหมด', num: true }, { t: 'จำนวนการจอง', num: true },
+        { t: 'คืนที่เข้าพัก', num: true }, { t: 'คืนงดให้บริการ', num: true }, { t: 'อัตราเข้าพัก', num: true }
+      ], rows, ['รวม', totalRooms, sumCol(rows, 2), totalNights, sumCol(rows, 4), pct(totalNights / (totalRooms * dim))]);
+
+      var custRows = formData.customerTypes.map(function (t) {
+        var list = bookings.filter(function (b) { return b.status === t; });
+        return [tag(t), list.filter(inMonth).length, list.reduce(function (s, b) { return s + nightsIn(b); }, 0)];
+      });
+      var custNights = sumCol(custRows, 2);
+      custRows.forEach(function (r) { r.push(pct(r[2] / custNights)); });
+      fillTable($('monthlyByCustomer'), [
+        { t: 'ประเภทลูกค้า' }, { t: 'จำนวนการจอง', num: true }, { t: 'คืนที่เข้าพัก', num: true }, { t: 'สัดส่วน', num: true }
+      ], custRows, ['รวม', sumCol(custRows, 1), custNights, custNights ? '100%' : '-']);
+    }
+
+    /* ---------- หน้าที่ 3 ตรวจสอบการเข้าพัก ---------- */
+
+    function renderStay() {
+      if (!bookings) return;
+      renderHistory();
+      renderSchedule();
+    }
+
+    function renderHistory() {
+      var ym = $('historyMonth').value;
+      var q = $('historySearch').value.trim().toLowerCase();
+      var list = bookings.filter(function (b) {
+        if (ym && b.checkIn.slice(0, 7) !== ym) return false;
+        if (!q) return true;
+        return [b.staff, b.roomType, b.roomNo, b.customerType, b.status].join(' ').toLowerCase().indexOf(q) !== -1;
+      }).sort(function (a, b) { return a.timestamp < b.timestamp ? 1 : -1; });
+
+      $('historyCount').textContent = '(' + list.length + ' รายการ)';
+      fillTable($('historyTable'), [
+        { t: 'ประทับเวลา' }, { t: 'ผู้รับผิดชอบ' }, { t: 'ห้อง' }, { t: 'Check in' }, { t: 'Check out' },
+        { t: 'คืน', num: true }, { t: 'สถานะ' }, { t: '' }
+      ], list.map(function (b) {
+        return [
+          esc(b.timestamp), esc(b.staff), esc(b.roomType + ' / ' + b.roomNo),
+          fmtDate(b.checkIn), fmtDate(b.checkOut), b.nights, tag(b.status),
+          '<button type="button" class="del" data-row="' + b.row + '">ลบ</button>'
+        ];
+      }));
+      $('historyTable').querySelectorAll('.del').forEach(function (btn) {
+        btn.onclick = function () {
+          var b = bookings.filter(function (x) { return x.row === Number(btn.dataset.row); })[0];
+          removeBooking(b, btn);
+        };
+      });
+    }
+
+    function removeBooking(b, btn) {
+      var msg = 'ต้องการลบรายการนี้ออกจากชีทหรือไม่?\n\n' +
+        'ห้อง ' + b.roomType + ' / ' + b.roomNo + '\n' +
+        fmtDate(b.checkIn) + ' – ' + fmtDate(b.checkOut) + '\n' +
+        'สถานะ: ' + b.status + '\nผู้รับผิดชอบ: ' + b.staff;
+      if (!confirm(msg)) return;
+      btn.disabled = true;
+      btn.textContent = 'กำลังลบ...';
+      call('deleteBooking', b.row, b.timestamp, b.roomNo).then(function () {
+        toast('ลบข้อมูลเรียบร้อย');
+      }).catch(function (e) {
+        toast('ลบไม่สำเร็จ: ' + (e.message || e), true);
+      }).then(function () {
+        // เลขแถวในชีทเลื่อนหลังลบ จึงต้องโหลดรายการใหม่ทุกครั้ง
+        return loadData().then(renderStay).catch(loadError);
+      });
+    }
+
+    function renderSchedule() {
+      var ym = $('scheduleMonth').value || todayISO().slice(0, 7);
+      var dim = daysInMonth(ym);
+      var today = todayISO();
+      var days = [];
+      for (var i = 1; i <= dim; i++) days.push(ym + '-' + pad(i));
+
+      // ห้อง -> วันที่ -> การจอง
+      var byRoom = {};
+      bookings.forEach(function (b) {
+        var m = byRoom[b.roomType + '|' + b.roomNo] = byRoom[b.roomType + '|' + b.roomNo] || {};
+        days.forEach(function (d) { if (staysOn(b, d)) m[d] = b; });
+      });
+
+      var html = '<thead><tr><th class="room">ห้อง</th>' + days.map(function (d, i) {
+        var dow = new Date(d + 'T00:00:00Z').getUTCDay();
+        var style = d === today ? ' style="color:var(--primary);text-decoration:underline"' : '';
+        return '<th' + (dow === 0 || dow === 6 ? ' class="we"' : '') + style + '>' + (i + 1) + '</th>';
+      }).join('') + '</tr></thead><tbody>';
+
+      formData.roomGroups.forEach(function (g) {
+        html += '<tr class="group"><td>กลุ่ม ' + esc(g.type) + '</td><td colspan="' + dim + '"></td></tr>';
+        g.rooms.forEach(function (room) {
+          var m = byRoom[g.type + '|' + room] || {};
+          html += '<tr><td class="room">' + esc(room) + '</td>' + days.map(function (d) {
+            var b = m[d];
+            if (!b) return '<td class="cell"></td>';
+            var title = b.status + '\n' + fmtDate(b.checkIn) + ' – ' + fmtDate(b.checkOut) + '\nผู้รับผิดชอบ: ' + b.staff;
+            return '<td class="cell" style="background:' + (STATUS_COLORS[b.status] || '#475569') + '" title="' + esc(title) + '"></td>';
+          }).join('') + '</tr>';
+        });
+      });
+      $('scheduleTable').innerHTML = html + '</tbody>';
+    }
+
+    (function initReports() {
+      var t = todayISO();
+      $('dailyDate').value = t;
+      $('monthlyMonth').value = t.slice(0, 7);
+      $('scheduleMonth').value = t.slice(0, 7);
+      $('legend').innerHTML = Object.keys(STATUS_COLORS).map(function (s) {
+        return '<span><i style="background:' + STATUS_COLORS[s] + '"></i>' + esc(s) + '</span>';
+      }).join('');
+
+      setupTabs('dashTabs', 'dash-', renderDashboard);
+      setupTabs('stayTabs', 'stay-', renderStay);
+      $('dailyDate').addEventListener('change', renderDaily);
+      $('monthlyMonth').addEventListener('change', renderMonthly);
+      $('historyMonth').addEventListener('change', renderHistory);
+      $('historySearch').addEventListener('input', renderHistory);
+      $('scheduleMonth').addEventListener('change', renderSchedule);
+    })();
 
     function tick() {
       $('clock').textContent = 'เวลาปัจจุบัน ' + new Date().toLocaleString('th-TH');
