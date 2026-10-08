@@ -1,1 +1,454 @@
-<h1>Hello</h1>
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ระบบจองบ้านพัก</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f3f6f4;
+      --card: #ffffff;
+      --text: #1f2a24;
+      --muted: #66756c;
+      --line: #d9e2dc;
+      --primary: #2f7d5b;
+      --primary-soft: #e3f1ea;
+      --danger: #c0392b;
+      --danger-soft: #fbe9e7;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Sarabun', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 16px;
+    }
+    header {
+      background: var(--primary);
+      color: #fff;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    header h1 { font-size: 20px; margin: 0; flex: 1; }
+    header button {
+      background: rgba(255,255,255,.15);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,.4);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font: inherit;
+      cursor: pointer;
+    }
+    main { max-width: 760px; margin: 0 auto; padding: 20px 16px 40px; }
+    .page { display: none; }
+    .page.active { display: block; }
+
+    .menu { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+    .menu button {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 26px 16px;
+      font: inherit;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      text-align: left;
+    }
+    .menu button span { display: block; font-size: 30px; margin-bottom: 8px; }
+    .menu button:hover { border-color: var(--primary); background: var(--primary-soft); }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 14px;
+    }
+    .card h2 { font-size: 17px; margin: 0 0 12px; }
+    .card h2 small { color: var(--muted); font-weight: 400; }
+
+    select, input[type=date] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      font: inherit;
+      background: #fff;
+    }
+    .choices { display: flex; flex-wrap: wrap; gap: 8px; }
+    .choice {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 999px;
+      padding: 8px 16px;
+      font: inherit;
+      cursor: pointer;
+      color: var(--text);
+    }
+    .choice:hover { border-color: var(--primary); }
+    .choice.selected { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .choice.closed.selected { background: var(--danger); border-color: var(--danger); }
+    .choices.rooms .choice { border-radius: 10px; min-width: 64px; }
+    .sub { margin-top: 12px; }
+    .hint { color: var(--muted); font-size: 14px; margin-top: 8px; }
+
+    .dates { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .dates label { font-size: 14px; color: var(--muted); display: block; margin-bottom: 4px; }
+    .nights {
+      margin-top: 12px;
+      padding: 10px 12px;
+      background: var(--primary-soft);
+      border-radius: 10px;
+      font-weight: 600;
+    }
+    .nights.error { background: var(--danger-soft); color: var(--danger); }
+
+    .summary { font-size: 15px; line-height: 1.7; }
+    .summary b { display: inline-block; min-width: 140px; color: var(--muted); font-weight: 400; }
+
+    .save {
+      width: 100%;
+      padding: 14px;
+      border: 0;
+      border-radius: 12px;
+      background: var(--primary);
+      color: #fff;
+      font: inherit;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .save:disabled { opacity: .5; cursor: default; }
+    .clock { text-align: center; color: var(--muted); margin-top: 8px; font-size: 14px; }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      transform: translateX(-50%);
+      padding: 12px 18px;
+      border-radius: 10px;
+      color: #fff;
+      background: var(--primary);
+      box-shadow: 0 6px 20px rgba(0,0,0,.15);
+      display: none;
+      max-width: calc(100% - 32px);
+    }
+    .toast.error { background: var(--danger); }
+    .toast.show { display: block; }
+
+    @media (max-width: 480px) {
+      .dates { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1 id="title">ระบบจองบ้านพัก</h1>
+    <button id="backBtn" type="button" onclick="go('home')" hidden>← หน้าหลัก</button>
+  </header>
+
+  <main>
+    <!-- หน้าเข้าระบบ -->
+    <section id="page-home" class="page active">
+      <div class="menu">
+        <button type="button" onclick="go('booking')"><span>📝</span>บันทึกการจองบ้านพัก</button>
+        <button type="button" onclick="go('dashboard')"><span>📊</span>แดชบอร์ด</button>
+        <button type="button" onclick="go('stay')"><span>🔎</span>ตรวจสอบการเข้าพัก</button>
+        <button type="button" onclick="go('manage')"><span>🗂️</span>เพิ่ม / ลบข้อมูล</button>
+      </div>
+    </section>
+
+    <!-- หน้าที่ 1 บันทึกการจองบ้านพัก -->
+    <section id="page-booking" class="page">
+      <div class="card">
+        <h2>1. ชื่อผู้รับผิดชอบ</h2>
+        <select id="staff"><option value="">กำลังโหลด...</option></select>
+      </div>
+
+      <div class="card">
+        <h2>2. สถานะห้อง</h2>
+        <div class="choices" id="statusChoices">
+          <button type="button" class="choice selected" data-closed="0">เปิดให้เข้าพัก</button>
+          <button type="button" class="choice closed" data-closed="1">งดให้บริการ</button>
+        </div>
+        <div class="sub" id="customerBlock">
+          <h2>ประเภทลูกค้าที่เข้ามาจอง</h2>
+          <div class="choices" id="customerChoices"></div>
+        </div>
+        <div class="hint" id="closedHint" hidden>เลือกห้องและช่วงวันที่ที่ต้องการงดให้บริการ</div>
+      </div>
+
+      <div class="card">
+        <h2>3. ประเภทห้องที่จะทำการจอง</h2>
+        <div class="choices" id="groupChoices"></div>
+        <div class="sub" id="roomBlock" hidden>
+          <h2>เลขห้อง <small id="roomGroupLabel"></small></h2>
+          <div class="choices rooms" id="roomChoices"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>4. วันที่เข้าพัก</h2>
+        <div class="dates">
+          <div>
+            <label for="checkIn">วันที่ Check in</label>
+            <input type="date" id="checkIn">
+          </div>
+          <div>
+            <label for="checkOut">วันที่ Check out</label>
+            <input type="date" id="checkOut">
+          </div>
+        </div>
+        <div class="nights" id="nights" hidden></div>
+      </div>
+
+      <div class="card summary" id="summary"></div>
+
+      <button type="button" class="save" id="saveBtn" onclick="save()">บันทึกข้อมูล</button>
+      <div class="clock" id="clock"></div>
+    </section>
+
+    <section id="page-dashboard" class="page"><div class="card">หน้าแดชบอร์ด (กำลังพัฒนา)</div></section>
+    <section id="page-stay" class="page"><div class="card">ตรวจสอบการเข้าพัก (กำลังพัฒนา)</div></section>
+    <section id="page-manage" class="page"><div class="card">เพิ่ม / ลบข้อมูล (กำลังพัฒนา)</div></section>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    var PAGE_TITLES = {
+      home: 'ระบบจองบ้านพัก',
+      booking: 'บันทึกการจองบ้านพัก',
+      dashboard: 'แดชบอร์ด',
+      stay: 'ตรวจสอบการเข้าพัก',
+      manage: 'เพิ่ม / ลบข้อมูล'
+    };
+
+    var state = { closed: false, customerType: '', roomType: '', roomNo: '' };
+    var formData = null;
+
+    // เมื่อเปิดไฟล์นอก Apps Script (เช่นทดสอบในเบราว์เซอร์) ใช้ข้อมูลตัวอย่าง
+    var api = (typeof google !== 'undefined' && google.script) ? null : {
+      getBookingFormData: function () {
+        return {
+          staff: ['สมชาย ใจดี', 'สมหญิง รักงาน'],
+          customerTypes: ['เจ้าของบ้านเข้าพัก', 'ลูกค้าทั่วไปเข้าพัก', 'ลูกค้าเข้าพัก ใช้บัตรของขวัญ', 'อินฟลูเอนเซอร์เข้าพัก'],
+          roomGroups: [
+            { type: 'D', rooms: ['D01', 'D02', 'D03'] },
+            { type: 'T', rooms: ['T01', 'T02'] },
+            { type: 'N', rooms: ['N01'] },
+            { type: 'P', rooms: ['P01', 'P02'] },
+            { type: 'L', rooms: ['L01'] },
+            { type: 'G', rooms: ['G01', 'G02'] }
+          ]
+        };
+      },
+      saveBooking: function (f) { console.log('saveBooking', JSON.stringify(f)); return { row: 3 }; }
+    };
+
+    function call(fn, arg) {
+      return new Promise(function (resolve, reject) {
+        if (api) {
+          setTimeout(function () {
+            try { resolve(api[fn](arg)); } catch (e) { reject(e); }
+          }, 200);
+          return;
+        }
+        google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn](arg);
+      });
+    }
+
+    function $(id) { return document.getElementById(id); }
+
+    function go(page) {
+      document.querySelectorAll('.page').forEach(function (p) { p.classList.remove('active'); });
+      $('page-' + page).classList.add('active');
+      $('title').textContent = PAGE_TITLES[page];
+      $('backBtn').hidden = page === 'home';
+      if (page === 'booking' && !formData) loadForm();
+      window.scrollTo(0, 0);
+    }
+
+    function toast(msg, isError) {
+      var t = $('toast');
+      t.textContent = msg;
+      t.className = 'toast show' + (isError ? ' error' : '');
+      clearTimeout(toast.timer);
+      toast.timer = setTimeout(function () { t.className = 'toast'; }, 3500);
+    }
+
+    function makeChoices(container, items, onPick) {
+      container.innerHTML = '';
+      items.forEach(function (label) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'choice';
+        b.textContent = label;
+        b.onclick = function () {
+          select(container, b);
+          onPick(label);
+        };
+        container.appendChild(b);
+      });
+    }
+
+    function select(container, btn) {
+      container.querySelectorAll('.choice').forEach(function (c) { c.classList.remove('selected'); });
+      if (btn) btn.classList.add('selected');
+    }
+
+    function loadForm() {
+      call('getBookingFormData').then(function (data) {
+        formData = data;
+        var staffSel = $('staff');
+        staffSel.innerHTML = '<option value="">-- เลือกผู้รับผิดชอบ --</option>';
+        data.staff.forEach(function (n) {
+          var o = document.createElement('option');
+          o.value = n;
+          o.textContent = n;
+          staffSel.appendChild(o);
+        });
+
+        makeChoices($('customerChoices'), data.customerTypes, function (t) {
+          state.customerType = t;
+          render();
+        });
+
+        makeChoices($('groupChoices'), data.roomGroups.map(function (g) { return 'กลุ่ม ' + g.type; }), function (label) {
+          var group = data.roomGroups.filter(function (g) { return 'กลุ่ม ' + g.type === label; })[0];
+          state.roomType = group.type;
+          state.roomNo = '';
+          $('roomBlock').hidden = false;
+          $('roomGroupLabel').textContent = '(กลุ่ม ' + group.type + ')';
+          makeChoices($('roomChoices'), group.rooms, function (r) {
+            state.roomNo = r;
+            render();
+          });
+          render();
+        });
+        render();
+      }).catch(function (e) {
+        toast('โหลดข้อมูลไม่สำเร็จ: ' + (e.message || e), true);
+      });
+    }
+
+    $('statusChoices').querySelectorAll('.choice').forEach(function (b) {
+      b.onclick = function () {
+        select($('statusChoices'), b);
+        state.closed = b.dataset.closed === '1';
+        $('customerBlock').hidden = state.closed;
+        $('closedHint').hidden = !state.closed;
+        render();
+      };
+    });
+
+    ['staff', 'checkIn', 'checkOut'].forEach(function (id) {
+      $(id).addEventListener('change', render);
+    });
+
+    function nights() {
+      var a = $('checkIn').value, b = $('checkOut').value;
+      if (!a || !b) return null;
+      return Math.round((new Date(b + 'T00:00:00Z') - new Date(a + 'T00:00:00Z')) / 86400000);
+    }
+
+    function fmtDate(s) {
+      if (!s) return '-';
+      var p = s.split('-');
+      return p[2] + '/' + p[1] + '/' + p[0];
+    }
+
+    function esc(s) {
+      return String(s).replace(/[&<>"]/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+      });
+    }
+
+    function render() {
+      var n = nights();
+      var nEl = $('nights');
+      nEl.hidden = n === null;
+      if (n !== null) {
+        if (n < 1) {
+          nEl.className = 'nights error';
+          nEl.textContent = 'วันที่ Check out ต้องอยู่หลังวันที่ Check in';
+        } else {
+          nEl.className = 'nights';
+          nEl.textContent = (state.closed ? 'งดให้บริการ ' : 'ระยะเวลาเข้าพัก ') + n + ' คืน (' + (n + 1) + ' วัน)';
+        }
+      }
+      $('checkOut').min = $('checkIn').value;
+
+      var status = state.closed ? 'งดให้บริการ' : (state.customerType || '-');
+      $('summary').innerHTML =
+        '<div><b>ผู้รับผิดชอบ</b>' + esc($('staff').value || '-') + '</div>' +
+        '<div><b>ประเภทลูกค้า</b>' + esc(state.closed ? '-' : (state.customerType || '-')) + '</div>' +
+        '<div><b>ห้อง</b>' + esc(state.roomType ? state.roomType + ' / ' + (state.roomNo || '-') : '-') + '</div>' +
+        '<div><b>Check in – Check out</b>' + fmtDate($('checkIn').value) + ' – ' + fmtDate($('checkOut').value) + '</div>' +
+        '<div><b>สถานะห้อง</b>' + esc(status) + '</div>';
+
+      $('saveBtn').disabled = !validate(n, true);
+    }
+
+    function validate(n, silent) {
+      var msg = '';
+      if (!$('staff').value) msg = 'กรุณาเลือกชื่อผู้รับผิดชอบ';
+      else if (!state.closed && !state.customerType) msg = 'กรุณาเลือกประเภทลูกค้า';
+      else if (!state.roomType || !state.roomNo) msg = 'กรุณาเลือกประเภทห้องและเลขห้อง';
+      else if (n === null) msg = 'กรุณาเลือกวันที่ Check in และ Check out';
+      else if (n < 1) msg = 'วันที่ Check out ต้องอยู่หลังวันที่ Check in';
+      if (msg && !silent) toast(msg, true);
+      return !msg;
+    }
+
+    function save() {
+      if (!validate(nights(), false)) return;
+      var btn = $('saveBtn');
+      btn.disabled = true;
+      btn.textContent = 'กำลังบันทึก...';
+      call('saveBooking', {
+        staff: $('staff').value,
+        closed: state.closed,
+        customerType: state.closed ? '' : state.customerType,
+        roomType: state.roomType,
+        roomNo: state.roomNo,
+        checkIn: $('checkIn').value,
+        checkOut: $('checkOut').value
+      }).then(function () {
+        toast('บันทึกข้อมูลเรียบร้อย');
+        resetForm();
+      }).catch(function (e) {
+        toast('บันทึกไม่สำเร็จ: ' + (e.message || e), true);
+      }).then(function () {
+        btn.textContent = 'บันทึกข้อมูล';
+        render();
+      });
+    }
+
+    function resetForm() {
+      state.customerType = '';
+      state.roomType = '';
+      state.roomNo = '';
+      select($('customerChoices'), null);
+      select($('groupChoices'), null);
+      $('roomBlock').hidden = true;
+      $('checkIn').value = '';
+      $('checkOut').value = '';
+    }
+
+    function tick() {
+      $('clock').textContent = 'เวลาปัจจุบัน ' + new Date().toLocaleString('th-TH');
+    }
+    tick();
+    setInterval(tick, 1000);
+  </script>
+</body>
+</html>
