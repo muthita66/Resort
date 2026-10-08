@@ -113,7 +113,7 @@ function saveBooking(form) {
   try {
     var sheet = getSheet_(SHEET_CHECKIN);
     var row = nextEmptyRow_(sheet);
-    var lastCol = Math.max.apply(null, Object.keys(COL).map(function (k) { return COL[k]; }));
+    var lastCol = lastCol_();
     var values = sheet.getRange(row, 1, 1, lastCol).getValues()[0];
 
     values[COL.timestamp - 1] = new Date();
@@ -153,4 +153,63 @@ function parseDate_(s) {
   var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || ''));
   if (!m) return null;
   return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+}
+
+/** รายการจองทั้งหมดใน DB_CheckIn (วันที่ส่งเป็นข้อความ yyyy-MM-dd เพราะ google.script.run ส่ง Date ไม่ได้) */
+function getBookings() {
+  var sheet = getSheet_(SHEET_CHECKIN);
+  var last = sheet.getLastRow();
+  if (last < CHECKIN_FIRST_ROW) return [];
+  var values = sheet.getRange(CHECKIN_FIRST_ROW, 1, last - CHECKIN_FIRST_ROW + 1, lastCol_()).getValues();
+  var out = [];
+  values.forEach(function (r, i) {
+    var checkIn = fmtDate_(r[COL.checkIn - 1], 'yyyy-MM-dd');
+    var checkOut = fmtDate_(r[COL.checkOut - 1], 'yyyy-MM-dd');
+    if (!checkIn || !checkOut) return;
+    out.push({
+      row: CHECKIN_FIRST_ROW + i,
+      timestamp: fmtDate_(r[COL.timestamp - 1], 'yyyy-MM-dd HH:mm:ss'),
+      staff: String(r[COL.staff - 1]),
+      customerType: String(r[COL.customerType - 1]),
+      roomType: String(r[COL.roomType - 1]).trim(),
+      roomNo: String(r[COL.roomNo - 1]).trim(),
+      checkIn: checkIn,
+      checkOut: checkOut,
+      nights: Number(r[COL.nights - 1]) || 0,
+      status: String(r[COL.status - 1])
+    });
+  });
+  return out;
+}
+
+/**
+ * ลบแถวการจองออกจาก DB_CheckIn
+ * ตรวจว่าแถวยังเป็นรายการเดิม (ประทับเวลา + เลขห้องตรงกัน) ก่อนลบ กันลบผิดแถวเมื่อชีทเปลี่ยนไปแล้ว
+ */
+function deleteBooking(row, timestamp, roomNo) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var sheet = getSheet_(SHEET_CHECKIN);
+    row = Number(row);
+    if (row < CHECKIN_FIRST_ROW || row > sheet.getLastRow()) throw new Error('ไม่พบรายการที่ต้องการลบ');
+    var r = sheet.getRange(row, 1, 1, lastCol_()).getValues()[0];
+    if (fmtDate_(r[COL.timestamp - 1], 'yyyy-MM-dd HH:mm:ss') !== timestamp ||
+        String(r[COL.roomNo - 1]).trim() !== roomNo) {
+      throw new Error('ข้อมูลในชีทมีการเปลี่ยนแปลง กรุณาโหลดรายการใหม่แล้วลองอีกครั้ง');
+    }
+    sheet.deleteRow(row);
+    return true;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function lastCol_() {
+  return Math.max.apply(null, Object.keys(COL).map(function (k) { return COL[k]; }));
+}
+
+function fmtDate_(v, pattern) {
+  if (v instanceof Date) return Utilities.formatDate(v, Session.getScriptTimeZone(), pattern);
+  return v === '' || v == null ? '' : String(v);
 }
